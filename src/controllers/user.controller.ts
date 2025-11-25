@@ -16,7 +16,7 @@ const generateAccessAndRefreshToken = async (email: string) => {
 };
 
 const registerUser = asyncHandler(async (req: Request, res: Response) => {
-  const { firstName, lastName, email, password, phoneNumber, address } =
+  const { firstName, lastName, email, password, phoneNumber, address, role } =
     req.body;
 
   if (
@@ -27,9 +27,9 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
     throw new Error("All fields are required");
   }
 
-  const existedUser = await User.findOne({ email });
+  const existedUser = await User.findOne({ $or: [{ email }, { phoneNumber }] });
 
-  if (existedUser) throw new Error("User with email already exists");
+  if (existedUser) throw new Error("User with email or phone number already exists");
 
   const createdUser = await User.create({
     firstName,
@@ -38,13 +38,14 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
     password,
     phoneNumber,
     address,
+    role,
   });
 
   const user = await User.findById(createdUser._id).select("-password");
 
   if (!user) throw new Error("Something went wrong while creating the user");
 
-  return res.status(201).json(user);
+  return res.status(201).json({ user, message: "User created successfully" });
 });
 
 const loginUser = asyncHandler(async (req: Request, res: Response) => {
@@ -92,7 +93,9 @@ const changePassword = asyncHandler(async (req: Request, res: Response) => {
   user.password = newPassword;
   await user.save();
 
-  return res.status(200).json(user);
+  const updatedUser = await User.findById(req.user._id).select("-password -refreshToken");
+
+  return res.status(200).json({ user: updatedUser, message: "Password changed successfully" });
 });
 
 const logoutUser = asyncHandler(async (req: Request, res: Response) => {
