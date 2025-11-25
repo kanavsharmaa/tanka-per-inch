@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-export const verifyJWT = asyncHandler(
+const verifyJWT = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const token =
       req.cookies.accessToken ||
@@ -39,3 +39,19 @@ export const verifyJWT = asyncHandler(
     next();
   }
 );
+
+const verifyAdmin = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const role = req.user?.role;
+
+    if (role != "admin")
+      return res.status(401).json({
+        message:
+          "Unauthorized Request. Requires an admin to make changes to categories",
+      });
+
+    next();
+  }
+);
+
+export { verifyJWT, verifyAdmin };
